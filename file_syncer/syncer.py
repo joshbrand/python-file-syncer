@@ -28,7 +28,7 @@ from file_syncer.constants import MANIFEST_FILE
 class FileSyncer(object):
     def __init__(self, directory, provider_cls, username, api_key,
                  container_name, cache_path, exclude_patterns,
-                 logger, concurrency=20):
+                 follow_symlinks, logger, concurrency=20):
         self._directory = directory
         self._provider_cls = provider_cls
         self._username = username
@@ -36,6 +36,7 @@ class FileSyncer(object):
         self._container_name = container_name
         self._cache_path = cache_path
         self._exclude_patterns = exclude_patterns
+        self._follow_symlinks = follow_symlinks
         self._logger = logger
         self._concurrency = concurrency
 
@@ -102,7 +103,8 @@ class FileSyncer(object):
         with FileLock(lock_file_path, timeout=None):
             # Ensure that only a single process runs at the same time
             time_start = time.time()
-            local_files = self._get_local_files(directory=self._directory)
+            local_files = self._get_local_files(directory=self._directory,
+                                        follow_symlinks=self._follow_symlinks)
             self._logger.debug('Found %(count)s local files',
                                {'count': len(local_files)})
 
@@ -204,7 +206,7 @@ class FileSyncer(object):
         self._uploaded.append(item)
         self._logger.debug('Object uploaded: %(name)s', {'name': name})
 
-    def _get_local_files(self, directory):
+    def _get_local_files(self, directory, follow_symlinks):
         """
         Recursively find all the files in a directory.
 
@@ -213,7 +215,7 @@ class FileSyncer(object):
         result = {}
 
         base_path = os.path.abspath(directory)
-        for (dirpath, dirnames, filenames) in os.walk(directory):
+        for (dirpath, dirnames, filenames) in os.walk(directory, followlinks=follow_symlinks):
             for name in filenames:
 
                 file_path = os.path.join(base_path, dirpath, name)
@@ -221,7 +223,7 @@ class FileSyncer(object):
                                                          file_path=file_path)
 
                 if not self._include_file(remote_name):
-                    self._logger.debug('File %(name)s is excluded, skipping it', 
+                    self._logger.debug('File %(name)s is excluded, skipping it',
                                        {'name': name})
                     continue
 

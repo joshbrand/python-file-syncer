@@ -42,6 +42,8 @@ def run():
     parser.add_option('--exclude', dest='exclude',
                       help='Comma separated list of file name patterns to ' +
                            'exclude')
+    parser.add_option('--follow-symlinks', dest='follow_symlinks', default=False,
+                      action='store_true', help='Follow symlinks in local directory when syncing')
     parser.add_option('--log-level', dest='log_level', default='INFO',
                       help='Log level')
 
@@ -80,6 +82,7 @@ def run():
                         container_name=options.container_name,
                         cache_path=options.cache_path,
                         exclude_patterns=exclude_patterns,
+                        follow_symlinks=options.follow_symlinks,
                         logger=logger,
                         concurrency=int(options.concurrency))
     syncer.sync()
